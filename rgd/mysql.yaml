@@ -1,0 +1,95 @@
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: imm.db.mysql
+spec:
+  # kro uses this simple schema to create your CRD schema and apply it
+  # The schema defines what users can provide when they instantiate the RGD (create an instance).
+  schema:
+    apiVersion: v1alpha1
+    kind: Mysql
+    spec:
+      # Spec fields that users can provide.
+      name: string | required=true
+      image: string | default="mysql"
+      version: string | default="latest"
+      volume:
+        enabled: boolean | default=true
+        size: string | default="1Gi"
+        storageClass: string | default="standard"
+      env:
+        MYSQL_ROOT_PASSWORD: string | required=true
+        MYSQL_USER: string | required=true
+        MYSQL_PASSWORD: string | required=true
+        MYSQL_DATABASE: string | required=true
+    status:
+      status: string
+
+  # Define the resources this API will manage.
+  resources:
+    - id: statefulset
+      template:
+        apiVersion: apps/v1
+        kind: StatefulSet
+        metadata:
+          name: ${schema.spec.name} # Use the name provided by user
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: ${schema.spec.name}
+          template:
+            metadata:
+              labels:
+                app: ${schema.spec.name}
+            spec:
+              containers:
+                - name: ${schema.spec.name}
+                  image: ${schema.spec.image}:${schema.spec.version} # Use the image provided by user
+                  ports:
+                    - containerPort: 3306
+                  env: 
+                    - name: MYSQL_ROOT_PASSWORD
+                      value: ${schema.spec.env.MYSQL_ROOT_PASSWORD}
+                    - name: MYSQL_USER
+                      value: ${schema.spec.env.MYSQL_USER}
+                    - name: MYSQL_PASSWORD
+                      value: ${schema.spec.env.MYSQL_PASSWORD}
+                    - name: MYSQL_DATABASE
+                      value: ${schema.spec.env.MYSQL_DATABASE}
+                  volumeMounts:
+                  - name: ${schema.spec.name}-storage
+                    mountPath: /var/lib/mysql
+              volumes:
+              - name: ${schema.spec.name}-storage
+                persistentVolumeClaim:
+                  claimName: ${schema.spec.name}-pvc
+    - id: pvc 
+      template:
+        apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata:
+          name: ${schema.spec.name}-pvc
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: ${schema.spec.volume.size}
+          storageClassName: ${schema.spec.volume.storageClass}
+          selector:
+            matchLabels:
+              name: ${schema.spec.name}-pv
+
+    - id: service
+      template:
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: ${schema.spec.name}-service
+        spec:
+          selector: ${statefulset.spec.selector.matchLabels}
+          ports:
+            - protocol: TCP
+              port: 3306
+              targetPort: 3306

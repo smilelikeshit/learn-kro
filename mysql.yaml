@@ -1,0 +1,17 @@
+apiVersion: kro.run/v1alpha1
+kind: Mysql
+metadata:
+  name: mysql-one
+spec:
+  name: "mysql-one"
+  image: "mysql"
+  version: "8.0"
+  volume:
+    enabled: true
+    size: "1Gi"
+    storageClass: "standard"
+  env:
+    MYSQL_ROOT_PASSWORD: "mysqlpassword"
+    MYSQL_USER: "mysql"
+    MYSQL_PASSWORD: "mysqluser"
+    MYSQL_DATABASE: "mysqldb"

@@ -1,0 +1,69 @@
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: imm.db.postgresql
+spec:
+  # kro uses this simple schema to create your CRD schema and apply it
+  # The schema defines what users can provide when they instantiate the RGD (create an instance).
+  schema:
+    apiVersion: v1alpha1
+    kind: Postgresql
+    spec:
+      # Spec fields that users can provide.
+      name: string | required=true
+      image: string | default="postgres"
+      version: string | default="latest"
+      volume:
+        enabled: boolean | default=true
+        size: string | default="1Gi"
+        storageClass: string | default="standard"
+      env:
+        POSTGRES_USER: string | required=true
+        POSTGRES_PASSWORD: string | required=true
+        POSTGRES_DB: string | required=true
+    status:
+      # Fields the controller will inject into instances status.
+      state: string
+
+  # Define the resources this API will manage.
+  resources:
+    - id: statefulset
+      template:
+        apiVersion: apps/v1
+        kind: StatefulSet
+        metadata:
+          name: ${schema.spec.name} # Use the name provided by user
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: ${schema.spec.name}
+          template:
+            metadata:
+              labels:
+                app: ${schema.spec.name}
+            spec:
+              containers:
+                - name: ${schema.spec.name}
+                  image: ${schema.spec.image}:${schema.spec.version} # Use the image provided by user
+                  ports:
+                    - containerPort: 5432
+                  env: 
+                    - name: POSTGRES_USER
+                      value: ${schema.spec.env.POSTGRES_USER}
+                    - name: POSTGRES_PASSWORD
+                      value: ${schema.spec.env.POSTGRES_PASSWORD}
+                    - name: POSTGRES_DB
+                      value: ${schema.spec.env.POSTGRES_DB}
+    - id: service
+      template:
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: ${schema.spec.name}-service
+        spec:
+          selector: ${statefulset.spec.selector.matchLabels}
+          ports:
+            - protocol: TCP
+              port: 5432
+              targetPort: 5432

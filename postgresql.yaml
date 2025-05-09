@@ -1,0 +1,16 @@
+apiVersion: kro.run/v1alpha1
+kind: Postgresql
+metadata:
+  name: pg-one
+spec:
+  name: "pg-one"
+  image: "postgres"
+  version: "17"
+  volume:
+    enabled: true
+    size: "1Gi"
+    storageClass: "standard"
+  env:
+    POSTGRES_USER: "pguser"
+    POSTGRES_PASSWORD: "pgpassword"
+    POSTGRES_DB: "pgdb"
