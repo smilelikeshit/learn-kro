@@ -1,4 +1,5 @@
 # learn-kro
+For this demo i'm using Minikube. 
 # Kro 
 
 Kro is a framework for creating and managing Kubernetes resources using **ResourceGraphDefinition (RGD)**. It allows users to define and manage Kubernetes resources declaratively with a simple and flexible schema. With Kro, you can easily define and manage complex applications in Kubernetes using a single configuration file.
@@ -80,9 +81,25 @@ NAME        STATE    SYNCED   AGE
 mysql-one   ACTIVE   True     15m
 
 # mysql statefulset should be created successfully
+kubectl get sts
+NAME        READY   AGE
+mysql-one   1/1     39m
+
+kubectl get pod
+NAME                   READY   STATUS    RESTARTS   AGE
+mysql-one-0            1/1     Running   0          39m
+
+kubectl get pvc
+mysql-one-pvc   Bound    pvc-8b203bb7-3618-4734-adbb-93ca1a32825f   1Gi        RWO            standard       40m
+
+kubectl get pv
+pvc-8b203bb7-3618-4734-adbb-93ca1a32825f   1Gi        RWO            Delete           Bound    kro/mysql-one-pvc   standard                40m
+
+
 
 ```
 
 
 ## Reference
 - https://kro.run/
+
